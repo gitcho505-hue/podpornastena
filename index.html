@@ -133,16 +133,225 @@ function drawStats(R){const items=[['FS преобръщане',fmt(R.FSover,2),
 function drawEc2Summary(R){const rb=R.reinforcement,items=[['Бетон','C30/37 · fck = 30 MPa',true],['A1 огъване · стъбло',`MEd ${fmt(rb.Mstem,2)} / MRd ${fmt(rb.stemFlex.MRd,2)} kNm/m`,rb.stemFlex.ok],['A2 огъване · задна пета',`MEd ${fmt(rb.Mheel,2)} / MRd ${fmt(rb.heelFlex.MRd,2)} kNm/m`,rb.heelFlex.ok],['A3 огъване · предна пета',`MEd ${fmt(rb.Mtoe,2)} / MRd ${fmt(rb.toeFlex.MRd,2)} kNm/m`,rb.toeFlex.ok],['A1 срязване · стъбло',`VEd ${fmt(rb.stemShear.VEd,2)} / VRd,c ${fmt(rb.stemShear.VRdc,2)} kN/m`,rb.stemShear.ok]];return `<section><h4>6. Проверки по EC2 (ориентировъчни)</h4><table class="rtab"><tr><th>Проверка</th><th>Резултат</th><th>Статус</th></tr>${items.map(item=>`<tr><td>${item[0]}</td><td>${item[1]}</td><td class="${item[2]?'pass':'fail'}">${item[2]?'ОК':'НЕ Е ОК'}</td></tr>`).join('')}</table><div class="scheme-note">A1 е вертикална основна армировка в стъблото. A2 и A3 са хоризонтални пръти по дължината на стената, съответно горе в задната и долу в предната пета. Проверка за срязване е показана за стъблото; основите изискват пълен статически модел.</div></section>`}
 function drawRebarScheme(R){
  if(!R.reinforcement)return '';
- const rb=R.reinforcement,W=1100,H=620,sx=95,sy=475,scale=115,x=xm=>sx+xm*scale,y=ym=>sy-ym*scale;
- const stemX=R.Ltoe+R.tBase,stemTop=R.Ltoe+R.tTop,baseTop=R.tFoot,blue='#173c50',red='#9b2d2d',gray='#4a5c60';
- const dimH=(a,b,yy,label)=>`<line x1="${x(a)}" y1="${y(yy)}" x2="${x(b)}" y2="${y(yy)}" stroke="${blue}"/><line x1="${x(a)}" y1="${y(yy)-5}" x2="${x(a)}" y2="${y(yy)+5}" stroke="${blue}"/><line x1="${x(b)}" y1="${y(yy)-5}" x2="${x(b)}" y2="${y(yy)+5}" stroke="${blue}"/><text x="${(x(a)+x(b))/2}" y="${y(yy)-8}" text-anchor="middle">${label}</text>`;
- const dimV=(xx,a,b,label)=>`<line x1="${x(xx)}" y1="${y(a)}" x2="${x(xx)}" y2="${y(b)}" stroke="${blue}"/><line x1="${x(xx)-5}" y1="${y(a)}" x2="${x(xx)+5}" y2="${y(a)}" stroke="${blue}"/><line x1="${x(xx)-5}" y1="${y(b)}" x2="${x(xx)+5}" y2="${y(b)}" stroke="${blue}"/><text x="${x(xx)+9}" y="${(y(a)+y(b))/2}" dominant-baseline="middle">${label}</text>`;
- let s=`<svg class="rebar-scheme" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Подробна схема на армировката"><style>text{font-family:ui-monospace,Consolas,monospace;font-size:12px;fill:${blue}}.concrete{fill:#d6d8d4;stroke:${blue};stroke-width:2}.rebar{stroke:${red};stroke-width:4;fill:none}.dist{stroke:${red};stroke-width:2;stroke-dasharray:5 4}.leader{stroke:${red};stroke-width:1.2;fill:none}.box{fill:#fff;stroke:${red}}.title{font-weight:700;font-size:15px}.sub{fill:${gray};font-size:11px}</style><text class="title" x="24" y="28">СХЕМА НА АРМИРОВКАТА — РАЗРЕЗ A-A И ПЛАН НА ФУНДАМЕНТА</text><text x="${x(0)}" y="55" class="sub">РАЗРЕЗ A-A (размерите са в m)</text>`;
- s+=`<polygon class="concrete" points="${x(R.Ltoe)},${y(R.tFoot)} ${x(R.B)},${y(R.tFoot)} ${x(R.B)},${y(R.H)} ${x(stemTop)},${y(R.H)} ${x(R.Ltoe)},${y(R.tFoot)}"/><path class="rebar" d="M${x(stemX-.055)},${y(baseTop+.05)} L${x(stemTop-.045)},${y(R.H-.05)}"/><path class="rebar" d="M${x(stemX+.035)},${y(baseTop-.07)} L${x(R.B-.06)},${y(baseTop-.07)}"/><path class="rebar" d="M${x(.06)},${y(rb.anchor*.16)} L${x(R.Ltoe-.03)},${y(rb.anchor*.16)}"/>`;
- for(let i=0;i<5;i++){const yy=baseTop+.18+i*(R.H-baseTop-.36)/4;s+=`<line class="dist" x1="${x(R.Ltoe+.06)}" y1="${y(yy)}" x2="${x(stemX-.06)}" y2="${y(yy)}"/>`}
- s+=dimH(0,R.Ltoe,0,`Ltoe ${fmt(R.Ltoe,2)}`)+dimH(R.Ltoe,R.B,0,`Lheel ${fmt(R.Lheel,2)}`)+dimH(0,R.B,-.35,`B ${fmt(R.B,2)}`)+dimV(-.18,0,R.H,`H ${fmt(R.H1,2)}`)+dimV(R.B+.25,0,R.tFoot,`tф ${fmt(R.tFoot*100,0)} cm`);
- const bx=720;s+=`<rect class="box" x="${bx}" y="72" width="350" height="104"/><text x="${bx+12}" y="94" fill="${red}">A1 Стъбло — вертикална</text><text x="${bx+12}" y="112" fill="${red}">Ø${rb.dia} / ${rb.sStem} cm · L=${fmt(rb.stemCut,2)} m</text><text x="${bx+12}" y="130" class="sub">откъм насипа · анкериране ${fmt(rb.anchor,2)} m</text><path class="leader" d="M${bx},110 L${x(stemX-.055)},${y((R.H+baseTop)/2)}"/><rect class="box" x="${bx}" y="190" width="350" height="104"/><text x="${bx+12}" y="212" fill="${red}">A2 Задна пета — горна</text><text x="${bx+12}" y="230" fill="${red}">Ø${rb.dia} / ${rb.sHeel} cm · L=${fmt(rb.heelCut,2)} m</text><text x="${bx+12}" y="248" class="sub">права пръчка · анкериране ${fmt(rb.anchor,2)} m</text><path class="leader" d="M${bx},230 L${x((stemX+R.B)/2)},${y(baseTop-.07)}"/><rect class="box" x="${bx}" y="308" width="350" height="104"/><text x="${bx+12}" y="330" fill="${red}">A3 Предна пета — долна</text><text x="${bx+12}" y="348" fill="${red}">Ø${rb.dia} / ${rb.sToe} cm · L=${fmt(rb.toeCut,2)} m</text><text x="${bx+12}" y="366" class="sub">права пръчка · анкериране ${fmt(rb.anchor,2)} m</text><path class="leader" d="M${bx},348 L${x(R.Ltoe/2)},${y(rb.anchor*.16)}"/>`;
- s+=`<text x="24" y="555" class="sub">Червена плътна линия: основна носеща армировка · червена пунктирна: разпределителна Ø${rb.dia}/${rb.distribution} mm</text><text x="24" y="578" class="sub">Всички пръти са за 1 m дължина на стената; дължините включват ориентировъчно анкериране.</text></svg>`;return s;
+ const rb=R.reinforcement;
+ const W=1400,SH=900;
+ const blue='#173c50',red='#9b2d2d',gray='#4a5c60',green='#3c7a4a',orange='#b8401a';
+ // Layout: left cross-section, right detail panels
+ // Scale for cross-section drawing
+ const ml=140,mt=120,scale=160;
+ const X=xm=>ml+xm*scale, Y=(ym,base=mt+600)=>base-ym*scale;
+ const fmt2=(v,d=2)=>!isFinite(v)?'∞':v.toLocaleString('bg-BG',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+ // Concrete geometry
+ const xF=R.Ltoe, xB=R.Ltoe+R.tBase, xT=R.Ltoe+R.tTop;
+ const baseY=Y(0), topY=Y(R.H), footTopY=Y(R.tFoot);
+
+ // Helper: dimension line horizontal
+ function dH(x1m,x2m,ym,lbl,off=0){
+  const yp=Y(ym)+off;
+  return `<line stroke="${blue}" stroke-width="1" x1="${X(x1m)}" y1="${yp}" x2="${X(x2m)}" y2="${yp}"/>
+   <line stroke="${blue}" stroke-width="1" x1="${X(x1m)}" y1="${yp-6}" x2="${X(x1m)}" y2="${yp+6}"/>
+   <line stroke="${blue}" stroke-width="1" x1="${X(x2m)}" y1="${yp-6}" x2="${X(x2m)}" y2="${yp+6}"/>
+   <text x="${(X(x1m)+X(x2m))/2}" y="${yp-9}" text-anchor="middle" font-size="12" fill="${blue}">${lbl}</text>`;
+ }
+ // Helper: dimension line vertical
+ function dV(xm,y1m,y2m,lbl,off=-28){
+  const xp=X(xm)+off;
+  return `<line stroke="${blue}" stroke-width="1" x1="${xp}" y1="${Y(y1m)}" x2="${xp}" y2="${Y(y2m)}"/>
+   <line stroke="${blue}" stroke-width="1" x1="${xp-6}" y1="${Y(y1m)}" x2="${xp+6}" y2="${Y(y1m)}"/>
+   <line stroke="${blue}" stroke-width="1" x1="${xp-6}" y1="${Y(y2m)}" x2="${xp+6}" y2="${Y(y2m)}"/>
+   <text x="${xp-8}" y="${(Y(y1m)+Y(y2m))/2}" dominant-baseline="middle" text-anchor="end" font-size="12" fill="${blue}">${lbl}</text>`;
+ }
+
+ let s=`<svg class="rebar-scheme" viewBox="0 0 ${W} ${SH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Подробна схема на армировката">
+ <defs>
+  <pattern id="hatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+   <rect width="8" height="8" fill="#d6d8d4"/>
+   <line x1="0" y1="0" x2="0" y2="8" stroke="#aab2ae" stroke-width="1.2"/>
+  </pattern>
+  <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+   <path d="M0,0L8,3L0,6Z" fill="${blue}"/>
+  </marker>
+  <marker id="redarr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+   <path d="M0,0L8,3L0,6Z" fill="${red}"/>
+  </marker>
+ </defs>
+ <style>
+  text{font-family:ui-monospace,Consolas,monospace;fill:${blue}}
+  .ct{fill:url(#hatch);stroke:${blue};stroke-width:2.5}
+  .rb{stroke:${red};stroke-width:5;fill:none;stroke-linecap:round}
+  .rb2{stroke:${red};stroke-width:2.5;fill:none;stroke-dasharray:6 4}
+  .rb3{stroke:#2b7a4a;stroke-width:3;fill:none}
+  .ld{stroke:${red};stroke-width:1;fill:none;stroke-dasharray:4 3}
+  .zone{fill-opacity:.08;stroke-width:1.5;stroke-dasharray:6 3;rx:4}
+ </style>`;
+
+ // Title
+ s+=`<rect x="0" y="0" width="${W}" height="${SH}" fill="#f8f7f3"/>`;
+ s+=`<rect x="0" y="0" width="${W}" height="55" fill="${blue}"/>`;
+ s+=`<text x="20" y="24" font-size="17" font-weight="bold" fill="#fff">СХЕМА НА АРМИРОВКАТА — РАЗРЕЗ A-A</text>`;
+ s+=`<text x="20" y="44" font-size="12" fill="#a9c2c9">Конзолна подпорна стена · Бетон C30/37 · Стомана B500 · cnom=${rb.dStem<200?'50':'50'} mm</text>`;
+ s+=`<text x="${W-20}" y="24" font-size="12" fill="#a9c2c9" text-anchor="end">fyk=${fmt2(num('fyk'),0)} MPa · fck=30 MPa · fyd=${fmt2(num('fyk')/1.15,0)} MPa</text>`;
+
+ // --- CROSS SECTION ---
+ // Background
+ s+=`<rect x="${ml-80}" y="${mt-20}" width="${X(R.B+0.5)-ml+80}" height="${Y(-0.8)-mt+20}" fill="#edf1ed" rx="4"/>`;
+ s+=`<text x="${ml-70}" y="${mt-5}" font-size="13" font-weight="bold" fill="${blue}">РАЗРЕЗ A-A (m)</text>`;
+
+ // Foundation slab (heel)
+ s+=`<rect class="ct" x="${X(xF)}" y="${footTopY}" width="${(R.Lheel+R.tBase)*scale}" height="${R.tFoot*scale}"/>`;
+ // Foundation slab (toe)
+ s+=`<rect class="ct" x="${X(0)}" y="${Y(R.tFoot)}" width="${R.Ltoe*scale}" height="${R.tFoot*scale}"/>`;
+ // Stem (trapezoid)
+ s+=`<polygon class="ct" points="${X(xF)},${footTopY} ${X(xF)},${topY} ${X(xT)},${topY} ${X(xB)},${footTopY}"/>`;
+
+ // Ground level line
+ s+=`<line x1="${X(-0.3)}" y1="${Y(0)}" x2="${X(R.B+0.5)}" y2="${Y(0)}" stroke="#5b4a24" stroke-width="2" stroke-dasharray="10 5"/>`;
+ s+=`<text x="${X(-0.25)}" y="${Y(0)+18}" font-size="11" fill="#5b4a24">КОТА ОСНОВА ±0.00</text>`;
+
+ // Top of backfill line
+ s+=`<line x1="${X(xT)}" y1="${topY}" x2="${X(R.B+0.5)}" y2="${topY}" stroke="#5b4a24" stroke-width="2"/>`;
+ s+=`<text x="${X(R.B+0.1)}" y="${topY+16}" font-size="11" fill="#5b4a24">НАСИП</text>`;
+
+ // --- REBAR LINES ---
+ // A1: Vertical stem bars (main - backfill side)
+ const a1x=xB-0.06;
+ s+=`<path class="rb" d="M${X(a1x)},${Y(R.tFoot+0.05)} L${X(a1x)},${Y(R.H-0.05)}"/>`;
+ // A1 hook at bottom into footing
+ s+=`<path class="rb" d="M${X(a1x)},${Y(R.tFoot+0.05)} L${X(a1x)},${Y(0.08)} L${X(xB+0.25)},${Y(0.08)}"/>`;
+
+ // A1b: Vertical stem bars (front side - constructive)
+ const a1bx=xF+0.06;
+ s+=`<path class="rb3" d="M${X(a1bx)},${Y(R.tFoot+0.05)} L${X(a1bx)},${Y(R.H-0.05)}"/>`;
+ s+=`<path class="rb3" d="M${X(a1bx)},${Y(R.tFoot+0.05)} L${X(a1bx)},${Y(0.08)} L${X(xF-0.25)},${Y(0.08)}"/>`;
+
+ // Horizontal distribution bars in stem (dashed)
+ const nDist=Math.max(4,Math.round(R.H1/0.25));
+ for(let i=1;i<nDist;i++){
+  const yy=R.tFoot+i*(R.H-R.tFoot)/nDist;
+  s+=`<line class="rb2" x1="${X(xF+0.08)}" y1="${Y(yy)}" x2="${X(xB-0.08)}" y2="${Y(yy)}"/>`;
+ }
+
+ // A2: Heel top bars (horizontal)
+ const a2y=R.tFoot-0.08;
+ s+=`<path class="rb" d="M${X(xB+0.05)},${Y(a2y)} L${X(R.B-0.05)},${Y(a2y)}"/>`;
+
+ // A2b: Heel bottom bars (constructive)
+ const a2by=0.08;
+ s+=`<path class="rb3" d="M${X(xF+0.05)},${Y(a2by)} L${X(R.B-0.05)},${Y(a2by)}"/>`;
+
+ // A3: Toe bottom bars
+ const a3y=0.08;
+ s+=`<path class="rb" d="M${X(0.05)},${Y(a3y)} L${X(xF-0.05)},${Y(a3y)}"/>`;
+
+ // A3b: Toe top bars (constructive)
+ s+=`<path class="rb3" d="M${X(0.05)},${Y(R.tFoot-0.08)} L${X(xF-0.05)},${Y(R.tFoot-0.08)}"/>`;
+
+ // ZONE HIGHLIGHTS
+ // Stem zone
+ s+=`<rect class="zone" x="${X(xF)-2}" y="${topY-2}" width="${(xB-xF)*scale+4}" height="${(R.H-R.tFoot)*scale+4}" fill="${red}" stroke="${red}"/>`;
+ s+=`<text x="${(X(xF)+X(xB))/2}" y="${topY-8}" text-anchor="middle" font-size="10" fill="${red}">СТЪБЛО</text>`;
+ // Heel zone
+ s+=`<rect class="zone" x="${X(xB)-2}" y="${footTopY-2}" width="${R.Lheel*scale+4}" height="${R.tFoot*scale+4}" fill="${blue}" stroke="${blue}"/>`;
+ s+=`<text x="${(X(xB)+X(R.B))/2}" y="${Y(0)+22}" text-anchor="middle" font-size="10" fill="${blue}">ЗАДНА ПЕТА</text>`;
+ // Toe zone
+ s+=`<rect class="zone" x="${X(0)-2}" y="${Y(R.tFoot)-2}" width="${R.Ltoe*scale+4}" height="${R.tFoot*scale+4}" fill="${green}" stroke="${green}"/>`;
+ s+=`<text x="${(X(0)+X(xF))/2}" y="${Y(0)+22}" text-anchor="middle" font-size="10" fill="${green}">ПРЕДНА ПЕТА</text>`;
+
+ // DIMENSIONS
+ s+=dH(0,xF,0,`Ltoe=${fmt2(R.Ltoe,2)} m`,48);
+ s+=dH(xF,xB,0,`t=${fmt2(R.tBase*100,0)} cm`,48);
+ s+=dH(xB,R.B,0,`Lheel=${fmt2(R.Lheel,2)} m`,48);
+ s+=dH(0,R.B,0,`B = ${fmt2(R.B,2)} m`,76);
+ s+=dV(0,0,R.tFoot,`tф=${fmt2(R.tFoot*100,0)} cm`);
+ s+=dV(xF,R.tFoot,R.H,`H₁=${fmt2(R.H1,2)} m`,-50);
+ s+=dV(0,0,R.H,`H=${fmt2(R.H,2)} m`,-78);
+
+ // Cover indicators
+ s+=`<line stroke="${orange}" stroke-width="1" stroke-dasharray="3 2" x1="${X(a1x)}" y1="${Y(R.H*0.6)}" x2="${X(xB)}" y2="${Y(R.H*0.6)}"/>`;
+ s+=`<text x="${X(xB)+3}" y="${Y(R.H*0.6)+4}" font-size="10" fill="${orange}">cnom</text>`;
+
+ // ---- RIGHT PANEL: Detail boxes for each element ----
+ const px=X(R.B)+80;
+ const bw=340;
+
+ // Panel background
+ s+=`<rect x="${px-10}" y="${mt-20}" width="${bw+20}" height="${Y(-0.8)-mt+20}" fill="#fff" stroke="${blue}" stroke-width="1" rx="6"/>`;
+ s+=`<text x="${px+bw/2}" y="${mt-5}" text-anchor="middle" font-size="13" font-weight="bold" fill="${blue}">АРМИРОВЪЧНИ ЕЛЕМЕНТИ</text>`;
+
+ let py=mt+10;
+ const gap=14;
+
+ function panel(title,color,rows){
+  let ps=`<rect x="${px}" y="${py}" width="${bw}" height="${18+rows.length*22}" fill="${color}1a" stroke="${color}" stroke-width="1.5" rx="4"/>`;
+  ps+=`<text x="${px+10}" y="${py+14}" font-size="12" font-weight="bold" fill="${color}">${title}</text>`;
+  rows.forEach((r,i)=>{
+   ps+=`<text x="${px+14}" y="${py+32+i*22}" font-size="11" fill="${blue}">${r[0]}</text>`;
+   ps+=`<text x="${px+bw-10}" y="${py+32+i*22}" text-anchor="end" font-size="11" fill="${color}" font-weight="600">${r[1]}</text>`;
+  });
+  py+=18+rows.length*22+gap;
+  return ps;
+ }
+
+ s+=panel(`A1 — СТЪБЛО, основна армировка (откъм насипа)`,red,[
+  ['Диаметър', `Ø${rb.dia} mm`],
+  ['Стъпка', `s = ${rb.sStem} mm`],
+  ['Ефективна дебелина d', `${fmt2(rb.dStem,0)} mm`],
+  ['As,req', `${fmt2(rb.AsStem,0)} mm²/m`],
+  ['As,prov', `${fmt2(rb.AsStemProv,0)} mm²/m`],
+  ['Дължина пръчка', `L = ${fmt2(rb.stemCut,2)} m`],
+  ['Анкериране', `lb = ${fmt2(rb.anchor,2)} m`],
+  ['MEd', `${fmt2(rb.Mstem,2)} kNm/m`],
+  ['MRd', `${fmt2(rb.stemFlex.MRd,2)} kNm/m ${rb.stemFlex.ok?'✓':'✗'}`],
+ ]);
+
+ s+=panel(`A1b — СТЪБЛО, конструктивна армировка (откъм лицето)`,green,[
+  ['Диаметър', `Ø${rb.dia} mm`],
+  ['Стъпка', `s = 250 mm (конструктивна)`],
+  ['Роля', `Монтажна / ограничаване на пукнатини`],
+ ]);
+
+ s+=panel(`А-разп — СТЪБЛО, разпределителна армировка (хоризонтална)`,orange,[
+  ['Диаметър', `Ø${rb.dia} mm`],
+  ['Стъпка', `s = ${rb.distribution} mm`],
+  ['Ориентировъчен брой', `${Math.max(4,Math.round(R.H1/0.25))} броя по H₁`],
+  ['Роля', `Разпределителна — хоризонтална`],
+ ]);
+
+ s+=panel(`A2 — ЗАДНА ПЕТА, горна армировка`,blue,[
+  ['Диаметър', `Ø${rb.dia} mm`],
+  ['Стъпка', `s = ${rb.sHeel} mm`],
+  ['Ефективна дебелина d', `${fmt2(rb.dFoot,0)} mm`],
+  ['As,req', `${fmt2(rb.AsHeel,0)} mm²/m`],
+  ['As,prov', `${fmt2(rb.AsHeelProv,0)} mm²/m`],
+  ['Дължина пръчка', `L = ${fmt2(rb.heelCut,2)} m`],
+  ['MEd', `${fmt2(rb.Mheel,2)} kNm/m`],
+  ['MRd', `${fmt2(rb.heelFlex.MRd,2)} kNm/m ${rb.heelFlex.ok?'✓':'✗'}`],
+ ]);
+
+ s+=panel(`A3 — ПРЕДНА ПЕТА, долна армировка`,green,[
+  ['Диаметър', `Ø${rb.dia} mm`],
+  ['Стъпка', `s = ${rb.sToe} mm`],
+  ['As,req', `${fmt2(rb.AsToe,0)} mm²/m`],
+  ['As,prov', `${fmt2(rb.AsToeProv,0)} mm²/m`],
+  ['Дължина пръчка', `L = ${fmt2(rb.toeCut,2)} m`],
+  ['MEd', `${fmt2(rb.Mtoe,2)} kNm/m`],
+  ['MRd', `${fmt2(rb.toeFlex.MRd,2)} kNm/m ${rb.toeFlex.ok?'✓':'✗'}`],
+ ]);
+
+ // LEGEND
+ const ly=SH-110;
+ s+=`<rect x="10" y="${ly}" width="${W-20}" height="95" fill="#fff" stroke="${blue}" stroke-width="1" rx="4"/>`;
+ s+=`<text x="20" y="${ly+16}" font-size="12" font-weight="bold" fill="${blue}">ЛЕГЕНДА</text>`;
+ s+=`<line x1="20" y1="${ly+30}" x2="70" y2="${ly+30}" stroke="${red}" stroke-width="5"/><text x="78" y="${ly+34}" font-size="11">Основна армировка (A1, A2, A3) — главна носеща</text>`;
+ s+=`<line x1="20" y1="${ly+50}" x2="70" y2="${ly+50}" stroke="${red}" stroke-width="2.5" stroke-dasharray="6 4"/><text x="78" y="${ly+54}" font-size="11">Разпределителна армировка — хоризонтална в стъблото</text>`;
+ s+=`<line x1="20" y1="${ly+70}" x2="70" y2="${ly+70}" stroke="${green}" stroke-width="3"/><text x="78" y="${ly+74}" font-size="11">Конструктивна армировка — монтажна / ограничаване на пукнатини</text>`;
+ s+=`<text x="500" y="${ly+30}" font-size="11" fill="${gray}">Покритие: cnom = ${num('cover')} mm · Анкериране: lb ≈ ${fmt2(rb.anchor,2)} m · Припокриване: lo ≈ ${fmt2(rb.lap,2)} m</text>`;
+ s+=`<text x="500" y="${ly+50}" font-size="11" fill="${gray}">Бетон: C30/37 · fck=30 MPa · Стомана: B500 · fyk=${fmt2(num('fyk'),0)} MPa · fyd=${fmt2(num('fyk')/1.15,0)} MPa</text>`;
+ s+=`<text x="500" y="${ly+70}" font-size="11" fill="${red}">⚠ Предварително оразмеряване. Задължителни окончателни проверки: срязване, анкериране, пукнатини, детайлиране.</text>`;
+
+ s+=`</svg>`;
+ return `<section style="margin-top:24px"><h4>5а. Схема на армировката (детайлна)</h4>${s}</section>`;
 }
 function drawReport(R){
 const ok=R.FSover>=R.FSoverReq&&R.FSslide>=R.FSslideReq&&R.bearingOK;
