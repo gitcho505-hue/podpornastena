@@ -94,11 +94,13 @@ const $=id=>document.getElementById(id), num=id=>{const v=parseFloat($(id).value
 function setMode(){const g=$('wallMode').value==='gravity';document.querySelectorAll('.cant').forEach(e=>e.classList.toggle('hidden',g));document.querySelectorAll('.grav').forEach(e=>e.classList.toggle('hidden',!g));$('modeNote').textContent=g?'Гравитачна стена: трапецовидно масивно сечение без отделно стъбло и пета. Проверява се устойчивостта и се изчисляват количества.':'Конзолна стена: проверка на устойчивостта и ориентировъчно оразмеряване на армировката на стъблото и петата.';calc()}
 $('wallMode').addEventListener('change',setMode);document.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',calc));
 function rankine(phi,beta){if(Math.abs(beta)<1e-9)return Math.tan(Math.PI/4-phi/2)**2;const cb=Math.cos(beta),cp=Math.cos(phi),ins=Math.max(cb*cb-cp*cp,0),s=Math.sqrt(ins);return cb*(cb-s)/(cb+s)}
-function moKa(phi,beta,delta,kh,kv){const den=1-kv;if(den<=0)return NaN;const th=Math.atan(kh/den);const cth=Math.cos(th),a=delta+th+beta;const den2=Math.cos(a)*Math.cos(beta);if(Math.abs(den2)<1e-8)return NaN;const r=(Math.sin(phi+delta)*Math.sin(phi-beta-th))/(Math.cos(delta+th+beta)*Math.cos(beta));if(r<0)return NaN;const root=Math.sqrt(r);const v=(Math.cos(phi-th)**2)/(cth*Math.cos(delta+th+beta)**2*(1+root)**2);return v}
+// FIX #2: Mononobe-Okabe — знаменателят използва cos(δ+θ) БЕЗ β (EN1998-5 Annex E)
+function moKa(phi,beta,delta,kh,kv){const den=1-kv;if(den<=0)return NaN;const th=Math.atan(kh/den);const cth=Math.cos(th);const den2=Math.cos(delta+th)*Math.cos(beta);if(Math.abs(den2)<1e-8)return NaN;const r=(Math.sin(phi+delta)*Math.sin(phi-beta-th))/(Math.cos(delta+th)*Math.cos(beta));if(r<0)return NaN;const root=Math.sqrt(r);const v=(Math.cos(phi-th)**2)/(cth*Math.cos(delta+th)**2*(1+root)**2);return v}
 function barArea(d){return Math.PI*d*d/4}
 function designAs(MkNm,dmm,fyk){const fyd=fyk/1.15,z=.9*Math.max(dmm,1);return Math.max(0,MkNm*1e6/(fyd*z))}
 function ec2FlexCheck(MkNm,As,dmm,fck,fyk){const fyd=fyk/1.15,z=.9*Math.max(dmm,1),MRd=As*fyd*z/1e6;return {MRd,ok:MRd>=MkNm}}
-function ec2ShearCheck(VkN,As,dmm,bw,fck){const rho=Math.min(.02,As/(bw*dmm)),k=Math.min(2,1+Math.sqrt(200/Math.max(dmm,1))),CRd=.18/1.5,VRdc=(CRd*k*Math.pow(100*rho*fck,1/3)*bw*dmm)/1000;return {VEd:VkN,VRdc,ok:VkN<=VRdc}}
+// FIX #7: добавен задължителен праг vmin = 0.035·k^1.5·√fck (EC2 §6.2.2)
+function ec2ShearCheck(VkN,As,dmm,bw,fck){const rho=Math.min(.02,As/(bw*dmm)),k=Math.min(2,1+Math.sqrt(200/Math.max(dmm,1))),CRd=.18/1.5;const vmin=0.035*Math.pow(k,1.5)*Math.sqrt(fck);const VRdc=Math.max((CRd*k*Math.pow(100*rho*fck,1/3)*bw*dmm)/1000,(vmin*bw*dmm)/1000);return {VEd:VkN,VRdc,ok:VkN<=VRdc}}
 function pickSpacing(AsReq,phi){const Ab=barArea(phi),raw=1000*Ab/Math.max(AsReq,1);const s=Math.max(75,Math.min(300,Math.floor(raw/5)*5));return s}
 function calc(){
 const mode=$('wallMode').value,H1=num('H1'),tTop=num('tTop')/100,tBase=num('tBase')/100,tFoot=num('tFoot')/100,Ltoe=num('Ltoe'),toeOffset=Math.max(0,num('toeOffset')),Lheel=num('Lheel'),D=num('Dfront'),gH=num('gH'),gBbase=num('gBbase'),gBtop=num('gBtop');
@@ -110,7 +112,10 @@ if(mode==='cantilever'){H=H1+tFoot;B=Ltoe+tBase+Lheel;stemArea=(tTop+tBase)/2*H1
 // FIX #1: правилен центроид на трапецовидно стъбло
 const xStem=Ltoe+(tBase**2+tBase*tTop+tTop**2)/(3*(tBase+tTop)),xHeel=Ltoe+(tBase+Lheel)/2,xToe=Ltoe/2;
 xWc=(stemArea*xStem+heelFootArea*xHeel+toeFootArea*xToe)/Math.max(concreteArea,1e-9);
-Wsoil=Lheel*H1*gamma;xSoil=Ltoe+tBase+Lheel/2;backFace=Ltoe+tBase;frontFace=Ltoe;
+// FIX #4: тегло на насипа включва триъгълния клин от наклона β при β≠0
+const soilWedge=0.5*Lheel*Lheel*Math.tan(beta>=0?beta:0); // само при β>0
+Wsoil=(Lheel*H1+soilWedge)*gamma;
+xSoil=Ltoe+tBase+Lheel/2;backFace=Ltoe+tBase;frontFace=Ltoe;
 // FIX #5: предна пета в контактна основа по избор
 const toeInContact=includeToe&&toeOffset<1e-9;
 Bcontact=toeInContact?B:tBase+Lheel;xBase0=toeInContact?0:Ltoe;}
@@ -120,11 +125,25 @@ let Ka=rankine(phi,beta),betaWarn=Math.abs(betaDeg)>=phiDeg&&betaDeg!==0;
 if(!isFinite(Ka)||Ka<=0)Ka=rankine(phi,0);
 let KaE=Ka,seisWarn='';
 if(seis){KaE=moKa(phi,beta,delta,kh,kv);if(!isFinite(KaE)||KaE<=0){seisWarn='Mononobe–Okabe не е валиден за тази комбинация параметри; използван е Ka за статичната част.';KaE=Ka}}
-const Psoil=.5*Ka*gamma*H*H,Pq=Ka*q*H;
-let Pdyn=0,PqDyn=0;if(seis){Pdyn=Math.max(0,.5*(KaE-Ka)*gamma*H*H);PqDyn=Math.max(0,(KaE-Ka)*q*H)}
+// FIX #3: разлагане на наклонения натиск на хоризонтална и вертикална компонента
+const cb=Math.cos(beta),sb=Math.sin(beta);
+const PsoilTotal=.5*Ka*gamma*H*H, PqTotal=Ka*q*H;
+const Psoil=PsoilTotal*cb, PsoilV=PsoilTotal*sb;  // хоризонтална / вертикална компонента
+const Pq=PqTotal*cb,     PqV=PqTotal*sb;
+// FIX #5: сеизмичен прираст се пресмята за пълната H (за устойчивост), и поотделно за H1 (за стъблото)
+let Pdyn=0,PqDyn=0,PdynStem=0,PqDynStem=0;
+if(seis){
+  Pdyn=Math.max(0,.5*(KaE-Ka)*gamma*H*H);
+  PqDyn=Math.max(0,(KaE-Ka)*q*H);
+  PdynStem=Math.max(0,.5*(KaE-Ka)*gamma*H1*H1);  // само за H1
+  PqDynStem=Math.max(0,(KaE-Ka)*q*H1);
+}
 // FIX #3: пасивен отпор с редукционен коефициент γR (EC7)
 const SumH=Psoil+Pq+Pdyn+PqDyn, Pp=.5*Kp*gamma*D*D/gammaR;
-let SumV=Wc+Wsoil+(mode==='cantilever'?q*Lheel:0),Mr=Wc*xWc+Wsoil*xSoil+(mode==='cantilever'?q*Lheel*xSoil:0),Mo=Psoil*H/3+Pq*H/2+Pdyn*.6*H+PqDyn*H/2;
+// FIX #3: вертикалните компоненти на наклонения натиск увеличават SumV и стабилизиращия момент
+let SumV=Wc+Wsoil+PsoilV+PqV+(mode==='cantilever'?q*Lheel:0),
+    Mr=Wc*xWc+Wsoil*xSoil+PsoilV*backFace+PqV*backFace+(mode==='cantilever'?q*Lheel*xSoil:0),
+    Mo=Psoil*H/3+Pq*H/2+Pdyn*.6*H+PqDyn*H/2;
 let FSover=Mo>0?Mr/Mo:Infinity,slideRes=SumV*mu+coh*Bcontact+($('includePassive').checked?Pp:0),FSslide=SumH>0?slideRes/SumH:Infinity,xR=(Mr-Mo)/Math.max(SumV,1e-9),e=(xBase0+Bcontact/2)-xR,eLim=Bcontact/6,eOK=Math.abs(e)<=eLim;
 let qmax,qmin,Beff=null;if(eOK){qmax=SumV/Bcontact*(1+6*e/Bcontact);qmin=SumV/Bcontact*(1-6*e/Bcontact)}else{Beff=Math.max(0,3*(Bcontact/2-Math.abs(e)));qmax=Beff>0?2*SumV/Beff:Infinity;qmin=0}
 const bearingOK=qmax<=qAllow&&qmin>=0&&isFinite(qmax);
@@ -136,11 +155,14 @@ if(mode==='cantilever'){
  // FIX #7: минимална армировка по EC2 cl.9.2.1.1 с fctm член
  const fctm=0.3*Math.pow(fck,2/3); // C30/37: fctm≈2.896 MPa
  const asMinRatio=Math.max(0.26*fctm/fyk,0.0013);
- const Mstem=Ka*gamma*H1**3/6+Ka*q*H1**2/2+(seis?Pdyn*.6*H1+PqDyn*H1/2:0);
+ // FIX #1: ULS товарни коефициенти γG=1.35, γQ=1.50 (EN 1990)
+ const gG=1.35,gQ=1.50;
+ // FIX #5: сеизмичен прираст за стъблото ползва PdynStem/PqDynStem (за H1)
+ const Mstem=gG*(Ka*cb*gamma*H1**3/6)+gQ*(Ka*cb*q*H1**2/2)+(seis?PdynStem*.6*H1+PqDynStem*H1/2:0);
  const AsStem=Math.max(asMinRatio*1000*dStem,designAs(Mstem,dStem,fyk));
- // FIX #5: heelLoad включва тегло на фундаментната плоча
+ // FIX #1: ULS товарни коефициенти за петата
  const qUp=(qmax+qmin)/2;
- const heelLoad=gamma*H1+q+gc*tFoot;
+ const heelLoad=gG*(gamma*H1+gc*tFoot)+gQ*q;
  const netHeel=Math.abs(qUp-heelLoad),Mheel=netHeel*Lheel**2/2;
  const AsHeel=Math.max(asMinRatio*1000*dFoot,designAs(Mheel,dFoot,fyk));
  // FIX #6: Mtoe използва qmax (налягане под предния ръб), не средно
@@ -153,13 +175,14 @@ if(mode==='cantilever'){
  const stemFlex=ec2FlexCheck(Mstem,AsStemProv,dStem,fck,fyk);
  const heelFlex=ec2FlexCheck(Mheel,AsHeelProv,dFoot,fck,fyk);
  const toeFlex=ec2FlexCheck(Mtoe,AsToeProv,dFoot,fck,fyk);
- // FIX #2: VEd = пълна срязваща сила kN/m; bw=1000mm за ивица 1м
- const VEdStem=0.5*Ka*gamma*H1**2+Ka*q*H1+(seis?Pdyn+PqDyn:0);
+ // FIX #1+#5: ULS коефициенти; сеизмичен прираст за стъблото по H1
+ const VEdStem=gG*(0.5*Ka*cb*gamma*H1**2)+gQ*(Ka*cb*q*H1)+(seis?PdynStem+PqDynStem:0);
  const stemShear=ec2ShearCheck(VEdStem,AsStemProv,dStem,1000,fck);
  reinforcement={Mstem,Mheel,Mtoe,AsStem,AsHeel,AsToe,AsStemProv,AsHeelProv,AsToeProv,dia,sStem,sHeel,sToe,dStem,dFoot,anchor,lap,distribution:250,stemCut:H1+anchor,heelCut:Lheel+anchor,toeCut:Ltoe+anchor,fck,fctm,asMinRatio,stemFlex,heelFlex,toeFlex,stemShear,VEdStem}
 }
 const length=Math.max(0,num('wallLength')),concreteVol=concreteArea*length,excavVol=B*Math.max(D,tFoot)*length*1.10,backfillVol=mode==='cantilever'?Lheel*H1*length:0;
-let steelKg=0;if(reinforcement){const masspm=reinforcement.dia**2/162;const barsStem=1000/reinforcement.sStem,barsHeel=1000/reinforcement.sHeel,barsToe=1000/reinforcement.sToe;steelKg=length*1.10*masspm*(barsStem*H1+barsHeel*Lheel+barsToe*Ltoe)}
+// FIX #9: стоманата включва и разпределителната армировка в стъблото
+let steelKg=0;if(reinforcement){const masspm=reinforcement.dia**2/162;const barsStem=1000/reinforcement.sStem,barsHeel=1000/reinforcement.sHeel,barsToe=1000/reinforcement.sToe;const barsDistr=1000/reinforcement.distribution;steelKg=length*1.10*masspm*(barsStem*H1+barsHeel*Lheel+barsToe*Ltoe+barsDistr*H1)}
 const R={mode,H,H1,tTop,tBase,tFoot,Ltoe,toeOffset,Lheel,D,gH,gBbase,gBtop,B,betaDeg,phiDeg,gamma,gc,coh,q,qAllow,mu,Ka,KaE,seis,kh,kv,delta,Psoil,Pq,Pdyn,PqDyn,SumH,SumV,Wc,Wsoil,Mr,Mo,FSover,slideRes,FSslide,Pp,xR,e,eLim,eOK,qmax,qmin,bearingOK,betaWarn,seisWarn,concreteArea,concreteVol,excavVol,backfillVol,steelKg,length,reinforcement,frontFace,backFace,Bcontact,xBase0,Kp,FSoverReq:num('FSoverturnReq'),FSslideReq:num('FSslideReq')};
 drawSVG(R);drawStats(R);drawReport(R);if(R.reinforcement){$('report').insertAdjacentHTML('afterbegin',drawRebarScheme(R));$('report').insertAdjacentHTML('beforeend',drawEc2Summary(R))}
 }
@@ -417,7 +440,7 @@ ${(()=>{
  if(!sugg.length&&ok) return '';
  return '<section style="margin-top:16px"><h4 style="background:#b8401a">⚙ Предложения за корекция</h4>'+sugg.map(s=>'<div style="background:#fff8f6;border-left:4px solid #b8401a;padding:9px 12px;margin:7px 0;border-radius:3px"><b style="color:#b8401a">'+s.t+'</b><br><span style="font-size:12px;color:#4a5c60">→ '+s.c+'</span></div>').join('')+'</section>';
 })()}
-<div class="disclaimer">Калкулаторът е предназначен за предварително оразмеряване и количествена оценка. Изпол­званите модели са опростени. Не заменя геотехнически доклад и конструктивен проект. При реално проектиране се изисква проверка по приложимите нормативни документи, включително водно натоварване, дренаж, комбинации на въздействия, частни коефициенти, срязване, армировъчни детайли и сеизмична категория. <b>Корекции v2:</b> центроид на стъбло, геометрия на гравитачна стена, VEd при срязване, Pp с γR, heelLoad с тегло на плоча, Mtoe с qmax, As,min по EC2 fctm.</div>`}
+<div class="disclaimer">Калкулаторът е предназначен за предварително оразмеряване и количествена оценка. Изпол­званите модели са опростени. Не заменя геотехнически доклад и конструктивен проект. При реално проектиране се изисква проверка по приложимите нормативни документи, включително водно натоварване, дренаж, комбинации на въздействия, частни коефициенти, срязване, армировъчни детайли и сеизмична категория. <b>Корекции v3 (технически одит):</b> (1) ULS γG=1.35/γQ=1.50 в армировъчния модул; (2) Mononobe–Okabe — cos(δ+θ) без β в знаменателя; (3) разлагане на Psoil/Pq на cos·β (хор.) и sin·β (верт.) компонента; (4) триъгълен клин насип при β≠0; (5) сеизмичен прираст за стъблото по H1; (7) vmin праг в VRd,c; (8) визуален наклон β в SVG; (9) разпределителна армировка в количествената сметка.</div>`}
 function drawSVG(R){
 const W=1100,Hpx=760,ml=150,mr=210,mt=75,mb=150,drawW=W-ml-mr,drawH=Hpx-mt-mb;
 const front=1.25,back=1.45,totalW=front+R.B+back,totalH=R.H+Math.max(R.D,R.toeOffset+R.tFoot,0)+0.65;
@@ -439,7 +462,12 @@ if(R.mode==='cantilever'){
  s+=`<rect x="${X(0)}" y="${Y(zt+R.tFoot)}" width="${R.Ltoe*sc}" height="${R.tFoot*sc}" fill="url(#hc)" stroke="#173c50" stroke-width="2.2"/>`;
  s+=`<polygon points="${X(xF)},${Y(R.tFoot)} ${X(xF)},${Y(R.H)} ${X(xT)},${Y(R.H)} ${X(xB)},${Y(R.tFoot)}" fill="url(#hc)" stroke="#173c50" stroke-width="2.2"/>`;
  if(zt>1e-9){s+=`<text x="${X(R.Ltoe/2)}" y="${Y(zt+R.tFoot)+18}" text-anchor="middle" font-size="11" fill="#173c50">ПОВДИГНАТА ПРЕДНА ПЕТА</text><line class="ext" x1="${X(R.Ltoe)}" y1="${Y(0)}" x2="${X(R.Ltoe)}" y2="${Y(zt)}"/>`}
- s+=`<line x1="${X(xT)}" y1="${Y(R.H)}" x2="${X(R.B+back)}" y2="${Y(R.H)}" stroke="#5b4a24" stroke-width="2.5"/><text x="${X(R.B+.2)}" y="${Y(R.H)-10}" font-size="12">НАСИП / ТЕРЕН</text>`;
+ // FIX #8: визуално изобразяване на наклона β
+ const betaR=R.betaDeg*Math.PI/180;
+ const slopeEndX=R.B+back;
+ const slopeEndY=R.H+(slopeEndX-(R.Ltoe+R.tTop))*Math.tan(betaR);
+ s+=`<line x1="${X(R.Ltoe+R.tTop)}" y1="${Y(R.H)}" x2="${X(slopeEndX)}" y2="${Y(slopeEndY)}" stroke="#5b4a24" stroke-width="2.5"/>`;
+ s+=`<text x="${X(R.B+.15)}" y="${Y(slopeEndY)-8}" font-size="12">НАСИП / ТЕРЕН${Math.abs(R.betaDeg)>0.5?' β='+fmt(R.betaDeg,0)+'°':''}</text>`;
  if(R.reinforcement){const rb=R.reinforcement,stemX=xB-.055,stemTop=xT-.045;
    s+=`<path class="rbar" d="M${X(stemX)},${Y(R.tFoot+.05)} L${X(stemTop)},${Y(R.H-.05)}"/>`;
    for(let i=0;i<5;i++){const y=R.tFoot+.18+i*(R.H-R.tFoot-.36)/4;s+=`<line class="rbar2" x1="${X(xF+.06)}" y1="${Y(y)}" x2="${X(xB-.06)}" y2="${Y(y)}"/>`}
