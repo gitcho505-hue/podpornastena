@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Подпорна стена — разширен калкулатор</title>
+<style>
+:root{--paper:#eef1ee;--paper2:#e6ebe6;--grid:#cfd8d1;--ink:#182b30;--ink-soft:#4a5c60;--blue:#2b5f7a;--blue-deep:#173c50;--red:#b8401a;--green:#3c7a4a;--line:#c7cfc9;--concrete:#d6d8d4;--soil:#cdbd93;--steel:#9b2d2d}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--paper2);color:var(--ink);font-family:Segoe UI,system-ui,Arial,sans-serif}
+h1,h2,h3{font-family:Georgia,serif}.topbar{position:sticky;top:0;z-index:50;background:var(--blue-deep);color:#eef3f2;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 22px;box-shadow:0 2px 8px #0003}.topbar h1{font-size:20px;margin:0}.topbar span{font-size:12px;color:#a9c2c9;letter-spacing:1px;text-transform:uppercase}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{background:var(--red);color:#fff;border:none;padding:9px 14px;font-size:13px;font-weight:600;border-radius:3px;cursor:pointer}.btn.secondary{background:transparent;border:1px solid #7fa1ac;color:#dcecef}.btn.green{background:var(--green)}
+.wrap{max-width:1500px;margin:0 auto;padding:20px 20px 60px}.grid{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}.sticky{position:sticky;top:72px}
+.panel{background:#fbfaf6;border:1px solid var(--line);border-radius:4px;padding:16px 18px;box-shadow:0 1px 2px #0000000a}.panel+.panel{margin-top:14px}.panel h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--blue-deep);border-bottom:2px solid var(--blue-deep);padding-bottom:6px;margin:0 0 12px}.field{margin-bottom:9px}.field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}.field label b{color:var(--ink)}.field .row{display:flex;gap:8px;align-items:center}.field input,.field select{width:100%;padding:7px 8px;border:1px solid #b9c2c0;border-radius:3px;font-family:ui-monospace,Consolas,monospace;font-size:13px;background:#fff;color:var(--ink)}.field.checkbox{display:flex;gap:8px;align-items:center}.field.checkbox input{width:16px}.field.checkbox label{margin:0}.unit{font-size:12px;color:var(--ink-soft);min-width:45px}.hint{font-size:11px;color:#7c8985;margin-top:2px}.mode-note{font-size:11px;padding:7px;background:#edf3f5;border-left:3px solid var(--blue);margin-bottom:9px}
+.canvas-panel{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:10px;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}.canvas-panel svg{width:100%;height:auto;display:block}.results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.stat{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:3px;padding:9px 11px}.stat.pass{border-left-color:var(--green)}.stat.fail{border-left-color:var(--red)}.label{font-size:10px;text-transform:uppercase;color:var(--ink-soft)}.value{font-family:ui-monospace,Consolas,monospace;font-size:18px;font-weight:700;margin-top:2px}.pass .value{color:var(--green)}.fail .value{color:var(--red)}.req{font-size:10px;color:var(--ink-soft);margin-top:2px}
+.report{background:#fff;border:1px solid var(--line);border-radius:4px;padding:24px 28px;margin-top:18px}.report h2{font-size:22px;color:var(--blue-deep);border-bottom:3px double var(--blue-deep);padding-bottom:8px}.report h4{font-size:14px;color:#fff;background:var(--blue-deep);display:inline-block;padding:4px 12px;border-radius:2px;margin:0 0 9px}.report section{margin-bottom:20px}.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 20px;font-size:12px}.meta b{display:block;font-size:10px;color:var(--ink-soft);text-transform:uppercase}.calc-line{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#f6f6f2;border-left:3px solid var(--blue);padding:6px 9px;margin:5px 0}.desc{display:block;font-family:Segoe UI,sans-serif;color:var(--ink-soft);font-size:11px;margin-bottom:2px}table.rtab{width:100%;border-collapse:collapse;font-size:12px;margin:7px 0}table.rtab th,table.rtab td{border:1px solid var(--line);padding:6px 8px;text-align:right}table.rtab th{background:var(--paper);font-size:11px;text-transform:uppercase;color:var(--ink-soft)}table.rtab td:first-child,table.rtab th:first-child{text-align:left}.conclusion{border:2px solid var(--blue-deep);border-radius:4px;padding:13px 16px}.conclusion.ok{border-color:var(--green);background:#f2f8f2}.conclusion.bad{border-color:var(--red);background:#faf1ee}.warn{color:var(--red);font-size:12px;font-weight:600}.disclaimer{font-size:10.5px;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:10px;margin-top:18px;line-height:1.45}.hidden{display:none!important}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.sticky{position:static}.results-grid{grid-template-columns:repeat(2,1fr)}.meta{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.topbar{position:static;align-items:flex-start;flex-direction:column}.results-grid{grid-template-columns:1fr}.meta{grid-template-columns:1fr}.wrap{padding:12px}}
+@media print{.topbar,.grid>div:first-child,.no-print{display:none!important}.wrap{padding:0;max-width:100%}.grid{display:block}.canvas-panel{background:#fff}.report{border:none;padding:0}.stat,section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div><h1>Подпорна стена — разширен изчислителен калкулатор</h1><span>Кантилевер · Гравитачна · Ранкин · Mononobe–Okabe · Армировка · Количества · DXF</span></div>
+  <div class="actions no-print"><button class="btn secondary" onclick="resetDefaults()">Начални стойности</button><button class="btn secondary" onclick="saveProject()">💾 Запази проект</button><button class="btn secondary" onclick="$('projectFile').click()">📂 Зареди проект</button><input id="projectFile" type="file" accept="application/json,.json" class="hidden" onchange="loadProject(event)"><button class="btn green" onclick="exportDXF()">⬇ DXF / CAD</button><button class="btn" onclick="window.print()">🖨 Печат / PDF</button></div>
+</div>
+<div class="wrap"><div class="grid">
+<div class="sticky">
+<div class="panel"><h3>Обект и режим</h3>
+<div class="field"><label>Обект</label><input type="text" id="pName" value="Подпорна стена"></div>
+<div class="field"><label>Възложител</label><input type="text" id="pClient"></div>
+<div class="field"><label>Изготвил</label><input type="text" id="pAuthor"></div>
+<div class="field"><label>Дата</label><input type="date" id="pDate"></div>
+<div class="field"><label><b>Тип стена</b></label><select id="wallMode"><option value="cantilever">Стоманобетонна конзолна (стъбло + пета)</option><option value="gravity">Гравитачна / масивна</option></select></div>
+<div class="mode-note" id="modeNote">Конзолна стена: проверка на устойчивостта и ориентировъчно оразмеряване на армировката на стъблото и петата.</div>
+</div>
+<div class="panel"><h3>1. Геометрия</h3>
+<div class="cant">
+<div class="field"><label><b>H₁</b> — свободна височина на стъблото</label><div class="row"><input type="number" step=".05" id="H1" value="3"><span class="unit">m</span></div></div>
+<div class="field"><label><b>t горе</b> — дебелина на стъблото</label><div class="row"><input type="number" step="1" id="tTop" value="30"><span class="unit">cm</span></div></div>
+<div class="field"><label><b>t долу</b> — дебелина в основата</label><div class="row"><input type="number" step="1" id="tBase" value="40"><span class="unit">cm</span></div></div>
+<div class="field"><label><b>tф</b> — дебелина на фундаментната плоча</label><div class="row"><input type="number" step="1" id="tFoot" value="50"><span class="unit">cm</span></div></div>
+<div class="field"><label><b>Ltoe</b> — предна пета</label><div class="row"><input type="number" step=".05" id="Ltoe" value=".80"><span class="unit">m</span></div></div>
+<div class="field"><label><b>Δztoe</b> — вертикална позиция на предната пета спрямо кота основа</label><div class="row"><input type="number" min="0" step=".05" id="toeOffset" value="0"><span class="unit">m</span></div><div class="hint">0,00 m = предната пета лежи на кота основа. При Δztoe &gt; 0 пета е повдигната и се разглежда като конзолен рафт; контактната ширина на основата се преизчислява без нея.</div></div>
+<div class="field"><label><b>Lheel</b> — задна пета</label><div class="row"><input type="number" step=".05" id="Lheel" value="1.60"><span class="unit">m</span></div></div></div>
+<div class="grav hidden">
+<div class="field"><label><b>H</b> — височина на масивната стена</label><div class="row"><input type="number" step=".05" id="gH" value="3.50"><span class="unit">m</span></div></div>
+<div class="field"><label><b>B долу</b> — ширина в основата</label><div class="row"><input type="number" step=".05" id="gBbase" value="1.80"><span class="unit">m</span></div></div>
+<div class="field"><label><b>B горе</b> — ширина на короната</label><div class="row"><input type="number" step=".05" id="gBtop" value=".50"><span class="unit">m</span></div></div>
+</div>
+<div class="field"><label><b>D</b> — дълбочина на фундиране / заграждане отпред</label><div class="row"><input type="number" step=".05" id="Dfront" value=".80"><span class="unit">m</span></div></div>
+<div class="field"><label><b>β</b> — наклон на насипа зад стената</label><div class="row"><input type="number" step="1" id="beta" value="0"><span class="unit">°</span></div></div>
+<div class="field"><label><b>L</b> — обща дължина на стената за количества</label><div class="row"><input type="number" step=".1" id="wallLength" value="10"><span class="unit">m</span></div></div>
+</div>
+<div class="panel"><h3>2. Почва и материали</h3>
+<div class="field"><label><b>γ</b> — обемно тегло на насипа</label><div class="row"><input type="number" step=".5" id="gammaSoil" value="18"><span class="unit">kN/m³</span></div></div>
+<div class="field"><label><b>φ</b> — ъгъл на вътрешно триене</label><div class="row"><input type="number" step="1" id="phi" value="30"><span class="unit">°</span></div></div>
+<div class="field"><label><b>c</b> — кохезия</label><div class="row"><input type="number" step="1" id="cohesion" value="0"><span class="unit">kPa</span></div></div>
+<div class="field"><label><b>γб</b> — обемно тегло на бетона</label><div class="row"><input type="number" step=".5" id="gammaConcrete" value="24"><span class="unit">kN/m³</span></div></div>
+<div class="field checkbox"><input type="checkbox" id="muAuto" checked><label>μ автоматично = tan(⅔·φ)</label></div>
+<div class="field"><label><b>μ</b> — коефициент на триене</label><input type="number" step=".05" id="mu" value=".45"></div>
+<div class="field"><label><b>qдоп</b> — допустимо натоварване на почвата</label><div class="row"><input type="number" step="10" id="qAllow" value="220"><span class="unit">kPa</span></div></div>
+</div>
+<div class="panel"><h3>3. Товари и устойчивост</h3>
+<div class="field"><label><b>q</b> — полезен товар върху насипа</label><div class="row"><input type="number" step="1" id="qSurcharge" value="10"><span class="unit">kPa</span></div></div>
+<div class="field checkbox"><input type="checkbox" id="includePassive"><label>Отчитане на пасивен отпор пред стената</label></div>
+<div class="field"><label><b>FSпрев</b> — изискван минимум</label><input type="number" step=".1" id="FSoverturnReq" value="1.5"></div>
+<div class="field"><label><b>FSпл</b> — изискван минимум</label><input type="number" step=".1" id="FSslideReq" value="1.5"></div>
+</div>
+<div class="panel"><h3>4. Сеизмично въздействие</h3>
+<div class="field checkbox"><input type="checkbox" id="seismic"><label>Включи Mononobe–Okabe</label></div>
+<div class="field"><label><b>kₕ</b> — хоризонтален коефициент</label><input type="number" step=".01" id="kh" value=".10"></div>
+<div class="field"><label><b>kᵥ</b> — вертикален коефициент</label><input type="number" step=".01" id="kv" value="0"></div>
+<div class="field"><label><b>δ</b> — триене стена/насип</label><div class="row"><input type="number" step="1" id="delta" value="0"><span class="unit">°</span></div></div>
+<div class="hint">Използван е опростен Mononobe–Okabe за вертикална задна страна. Динамичният прираст е приложен на 0.6H за проверката на устойчивост.</div>
+</div>
+<div class="panel cant"><h3>5. Армировка — параметри</h3>
+<div class="field"><label><b>fyk</b></label><div class="row"><input type="number" step="5" id="fyk" value="500"><span class="unit">MPa</span></div></div>
+<div class="field"><label><b>fck</b></label><div class="row"><input type="number" step="1" id="fck" value="25"><span class="unit">MPa</span></div></div>
+<div class="field"><label><b>cnom</b> — номинално покритие</label><div class="row"><input type="number" step="5" id="cover" value="50"><span class="unit">mm</span></div></div>
+<div class="field"><label><b>Ø</b> — избран диаметър за схема</label><div class="row"><input type="number" step="1" id="barDia" value="16"><span class="unit">mm</span></div></div>
+<div class="hint">Оразмеряването е ориентировъчно за предварителен проект; окончателната армировка изисква проверка по приложимите норми, срязване, анкериране и детайлиране.</div>
+</div>
+</div>
+<div>
+<div class="canvas-panel"><svg id="svgWall" viewBox="0 0 960 680" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<div class="results-grid" id="statGrid"></div>
+<div class="report" id="report"></div>
+</div>
+</div></div>
+<script>
+const $=id=>document.getElementById(id), num=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:0}, rad=d=>d*Math.PI/180, fmt=(x,d=2)=>!isFinite(x)?'∞':x.toLocaleString('bg-BG',{minimumFractionDigits:d,maximumFractionDigits:d});
+function setMode(){const g=$('wallMode').value==='gravity';document.querySelectorAll('.cant').forEach(e=>e.classList.toggle('hidden',g));document.querySelectorAll('.grav').forEach(e=>e.classList.toggle('hidden',!g));$('modeNote').textContent=g?'Гравитачна стена: трапецовидно масивно сечение без отделно стъбло и пета. Проверява се устойчивостта и се изчисляват количества.':'Конзолна стена: проверка на устойчивостта и ориентировъчно оразмеряване на армировката на стъблото и петата.';calc()}
+$('wallMode').addEventListener('change',setMode);document.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',calc));
+function rankine(phi,beta){if(Math.abs(beta)<1e-9)return Math.tan(Math.PI/4-phi/2)**2;const cb=Math.cos(beta),cp=Math.cos(phi),ins=Math.max(cb*cb-cp*cp,0),s=Math.sqrt(ins);return cb*(cb-s)/(cb+s)}
+function moKa(phi,beta,delta,kh,kv){const den=1-kv;if(den<=0)return NaN;const th=Math.atan(kh/den);const cth=Math.cos(th),a=delta+th+beta;const den2=Math.cos(a)*Math.cos(beta);if(Math.abs(den2)<1e-8)return NaN;const r=(Math.sin(phi+delta)*Math.sin(phi-beta-th))/(Math.cos(delta+th+beta)*Math.cos(beta));if(r<0)return NaN;const root=Math.sqrt(r);const v=(Math.cos(phi-th)**2)/(cth*Math.cos(delta+th+beta)**2*(1+root)**2);return v}
+function barArea(d){return Math.PI*d*d/4}
+function designAs(MkNm,dmm,fyk){const fyd=fyk/1.15,z=.9*Math.max(dmm,1);let As=Math.max(0,MkNm*1e6/(fyd*z));return As}
+function pickSpacing(AsReq,phi){const Ab=barArea(phi),raw=1000*Ab/Math.max(AsReq,1);const s=Math.max(75,Math.min(300,Math.floor(raw/5)*5));return s}
+function calc(){
+const mode=$('wallMode').value,H1=num('H1'),tTop=num('tTop')/100,tBase=num('tBase')/100,tFoot=num('tFoot')/100,Ltoe=num('Ltoe'),toeOffset=Math.max(0,num('toeOffset')),Lheel=num('Lheel'),D=num('Dfront'),gH=num('gH'),gBbase=num('gBbase'),gBtop=num('gBtop');
+const betaDeg=num('beta'),beta=rad(betaDeg),phiDeg=num('phi'),phi=rad(phiDeg),gamma=num('gammaSoil'),gc=num('gammaConcrete'),coh=num('cohesion'),q=num('qSurcharge'),qAllow=num('qAllow'),kh=num('kh'),kv=num('kv'),delta=rad(num('delta')),seis=$('seismic').checked;
+const mu=$('muAuto').checked?Math.tan(2*phi/3):num('mu'),Kp=Math.tan(Math.PI/4+phi/2)**2;
+let H,B,Wc,xWc,Wsoil=0,xSoil=0,concreteArea,stemArea=0,footArea=0,backFace,frontFace,Bcontact=0,xBase0=0;
+if(mode==='cantilever'){H=H1+tFoot;B=Ltoe+tBase+Lheel;stemArea=(tTop+tBase)/2*H1;const heelFootArea=(tBase+Lheel)*tFoot,toeFootArea=Ltoe*tFoot;footArea=heelFootArea+toeFootArea;concreteArea=stemArea+footArea;Wc=concreteArea*gc;const xStem=Ltoe+(tTop+tBase)/4,xHeel=Ltoe+(tBase+Lheel)/2,xToe=Ltoe/2;xWc=(stemArea*xStem+heelFootArea*xHeel+toeFootArea*xToe)/Math.max(concreteArea,1e-9);Wsoil=Lheel*H1*gamma;xSoil=Ltoe+tBase+Lheel/2;backFace=Ltoe+tBase;frontFace=Ltoe;Bcontact=toeOffset>1e-9?tBase+Lheel:B;xBase0=toeOffset>1e-9?Ltoe:0}
+else{H=gH;B=gBbase;Bcontact=B;xBase0=0;concreteArea=(gBbase+gBtop)/2*gH;Wc=concreteArea*gc;const xTop=(gBbase-gBtop)/2+gBtop/2;const poly=[[0,0],[gBbase,0],[(gBbase+gBtop)/2+gBtop/2,gH],[(gBbase-gBtop)/2,gH]];let A=0,Cx=0;for(let i=0;i<poly.length;i++){let [x,y]=poly[i],[x2,y2]=poly[(i+1)%poly.length],cr=x*y2-x2*y;A+=cr;Cx+=(x+x2)*cr}xWc=Cx/(3*A);backFace=(gBbase+gBtop)/2+gBtop/2;frontFace=0}
+let Ka=rankine(phi,beta),betaWarn=Math.abs(betaDeg)>=phiDeg&&betaDeg!==0;
+if(!isFinite(Ka)||Ka<=0)Ka=rankine(phi,0);
+let KaE=Ka,seisWarn='';
+if(seis){KaE=moKa(phi,beta,delta,kh,kv);if(!isFinite(KaE)||KaE<=0){seisWarn='Mononobe–Okabe не е валиден за тази комбинация параметри; използван е Ka за статичната част.';KaE=Ka}}
+const Psoil=.5*Ka*gamma*H*H,Pq=Ka*q*H;
+let Pdyn=0,PqDyn=0;if(seis){Pdyn=Math.max(0,.5*(KaE-Ka)*gamma*H*H);PqDyn=Math.max(0,(KaE-Ka)*q*H)}
+const SumH=Psoil+Pq+Pdyn+PqDyn, Pp=.5*Kp*gamma*D*D;
+let SumV=Wc+Wsoil+(mode==='cantilever'?q*Lheel:0),Mr=Wc*xWc+Wsoil*xSoil+(mode==='cantilever'?q*Lheel*xSoil:0),Mo=Psoil*H/3+Pq*H/2+Pdyn*.6*H+PqDyn*H/2;
+let FSover=Mo>0?Mr/Mo:Infinity,slideRes=SumV*mu+coh*Bcontact+($('includePassive').checked?Pp:0),FSslide=SumH>0?slideRes/SumH:Infinity,xR=(Mr-Mo)/Math.max(SumV,1e-9),e=(xBase0+Bcontact/2)-xR,eLim=Bcontact/6,eOK=Math.abs(e)<=eLim;
+let qmax,qmin,Beff=null;if(eOK){qmax=SumV/Bcontact*(1+6*e/Bcontact);qmin=SumV/Bcontact*(1-6*e/Bcontact)}else{Beff=Math.max(0,3*(Bcontact/2-Math.abs(e)));qmax=Beff>0?2*SumV/Beff:Infinity;qmin=0}
+const bearingOK=qmax<=qAllow&&qmin>=0&&isFinite(qmax);
+let reinforcement=null;
+if(mode==='cantilever'){
+ const fyk=num('fyk'),cover=num('cover'),dia=num('barDia'),dStem=Math.max(80,tBase*100-cover-dia/2),Mstem=Ka*gamma*H1**3/6+Ka*q*H1**2/2+(seis?Pdyn*.6*H1+PqDyn*H1/2:0);
+ const AsStem=Math.max(.0013*1000*(tBase*100),designAs(Mstem,dStem,fyk));
+ const qUp=(qmax+qmin)/2, heelLoad=gamma*H1+q, netHeel=Math.abs(qUp-heelLoad),Mheel=netHeel*Lheel**2/2, dFoot=Math.max(80,tFoot*100-cover-dia/2),AsHeel=Math.max(.0013*1000*(tFoot*100),designAs(Mheel,dFoot,fyk));
+ const toeSupport=toeOffset>1e-9?0:qUp;const netToe=Math.abs(toeSupport-gc*tFoot),Mtoe=netToe*Ltoe**2/2,AsToe=Math.max(.0013*1000*(tFoot*100),designAs(Mtoe,dFoot,fyk));
+ reinforcement={Mstem,Mheel,Mtoe,AsStem,AsHeel,AsToe,dia,sStem:pickSpacing(AsStem,dia),sHeel:pickSpacing(AsHeel,dia),sToe:pickSpacing(AsToe,dia),dStem,dFoot}
+}
+const length=Math.max(0,num('wallLength')),concreteVol=concreteArea*length,excavVol=B*Math.max(D,tFoot)*length*1.10,backfillVol=mode==='cantilever'?Lheel*H1*length:0;
+let steelKg=0;if(reinforcement){const masspm=reinforcement.dia**2/162;const barsStem=1000/reinforcement.sStem,barsHeel=1000/reinforcement.sHeel,barsToe=1000/reinforcement.sToe;steelKg=length*1.10*masspm*(barsStem*H1+barsHeel*Lheel+barsToe*Ltoe)}
+const R={mode,H,H1,tTop,tBase,tFoot,Ltoe,toeOffset,Lheel,D,gH,gBbase,gBtop,B,betaDeg,phiDeg,gamma,gc,coh,q,qAllow,mu,Ka,KaE,seis,kh,kv,delta,Psoil,Pq,Pdyn,PqDyn,SumH,SumV,Wc,Wsoil,Mr,Mo,FSover,slideRes,FSslide,Pp,xR,e,eLim,eOK,qmax,qmin,bearingOK,betaWarn,seisWarn,concreteArea,concreteVol,excavVol,backfillVol,steelKg,length,reinforcement,frontFace,backFace,Bcontact,xBase0,Kp,FSoverReq:num('FSoverturnReq'),FSslideReq:num('FSslideReq')};
+drawSVG(R);drawStats(R);drawReport(R);
+}
+function drawStats(R){const items=[['FS преобръщане',fmt(R.FSover,2),R.FSover>=R.FSoverReq,'≥ '+fmt(R.FSoverReq,2)],['FS плъзгане',fmt(R.FSslide,2),R.FSslide>=R.FSslideReq,'≥ '+fmt(R.FSslideReq,2)],['e',fmt(R.e,3)+' m',R.eOK,'≤ '+fmt(R.eLim,3)+' m'],['σ max',fmt(R.qmax,1)+' kPa',R.bearingOK,'≤ '+fmt(R.qAllow,0)+' kPa'],['Kₐ'+(R.seis?' / KₐE':''),fmt(R.Ka,3)+(R.seis?' / '+fmt(R.KaE,3):''),true,R.seis?'Mononobe–Okabe':'Ранкин'],['Бетон',fmt(R.concreteVol,2)+' m³',true,'за '+fmt(R.length,1)+' m'],['Армировка',R.mode==='cantilever'?fmt(R.steelKg,0)+' kg':'—',true,R.mode==='cantilever'?'ориентировъчно':'масивна стена'],['Статус',R.FSover>=R.FSoverReq&&R.FSslide>=R.FSslideReq&&R.bearingOK?'ОК':'ПРОВЕРИ',R.FSover>=R.FSoverReq&&R.FSslide>=R.FSslideReq&&R.bearingOK,'устойчивост']];$('statGrid').innerHTML=items.map(x=>`<div class="stat ${x[2]?'pass':'fail'}"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="req">${x[3]}</div></div>`).join('')}
+function drawReport(R){
+const ok=R.FSover>=R.FSoverReq&&R.FSslide>=R.FSslideReq&&R.bearingOK;
+const seis=R.seis?`<div class="calc-line"><span class="desc">Mononobe–Okabe</span>KₐE = <b>${fmt(R.KaE,3)}</b>; θ = arctan(kₕ/(1−kᵥ)); kₕ=${fmt(R.kh,3)}, kᵥ=${fmt(R.kv,3)}. Динамичен прираст ΔEγ=<b>${fmt(R.Pdyn,2)} kN/m</b>, приложен на 0.6H; ΔEq=<b>${fmt(R.PqDyn,2)} kN/m</b>.</div>`:'';
+const geom=R.mode==='cantilever'?`<tr><td>Стъбло H₁</td><td>${fmt(R.H1,2)} m</td></tr><tr><td>Предна / задна пета</td><td>${fmt(R.Ltoe,2)} / ${fmt(R.Lheel,2)} m</td></tr><tr><td>Вертикална позиция на предната пета Δztoe</td><td>${fmt(R.toeOffset,2)} m над кота основа</td></tr><tr><td>Контактна ширина на основата</td><td>${fmt(R.Bcontact,2)} m ${R.toeOffset>0?'(без повдигнатата предна пета)':''}</td></tr><tr><td>t горе / долу / плоча</td><td>${fmt(R.tTop*100,0)} / ${fmt(R.tBase*100,0)} / ${fmt(R.tFoot*100,0)} cm</td></tr>`:`<tr><td>Височина H</td><td>${fmt(R.gH,2)} m</td></tr><tr><td>Ширина долу / горе</td><td>${fmt(R.gBbase,2)} / ${fmt(R.gBtop,2)} m</td></tr>`;
+const rebar=R.reinforcement?`<section><h4>5. Ориентировъчно оразмеряване на армировката</h4><table class="rtab"><tr><th>Елемент</th><th>MEd*, kNm/m</th><th>d, mm</th><th>As,req mm²/m</th><th>Предложение</th></tr><tr><td>Стъбло — вертикална армировка откъм насипа</td><td>${fmt(R.reinforcement.Mstem,2)}</td><td>${fmt(R.reinforcement.dStem,0)}</td><td>${fmt(R.reinforcement.AsStem,0)}</td><td>Ø${R.reinforcement.dia}/${R.reinforcement.sStem} cm</td></tr><tr><td>Задна пета — горна армировка</td><td>${fmt(R.reinforcement.Mheel,2)}</td><td>${fmt(R.reinforcement.dFoot,0)}</td><td>${fmt(R.reinforcement.AsHeel,0)}</td><td>Ø${R.reinforcement.dia}/${R.reinforcement.sHeel} cm</td></tr><tr><td>Предна пета — долна армировка</td><td>${fmt(R.reinforcement.Mtoe,2)}</td><td>${fmt(R.reinforcement.dFoot,0)}</td><td>${fmt(R.reinforcement.AsToe,0)}</td><td>Ø${R.reinforcement.dia}/${R.reinforcement.sToe} cm</td></tr></table><div class="warn">* Предварително оразмеряване с опростен конзолен модел. Задължителни са окончателни проверки за огъване, срязване, минимална/максимална армировка, анкериране, припокриване, пукнатини и детайлиране.</div></section>`:'';
+$('report').innerHTML=`<h2>Технически доклад — ${R.mode==='cantilever'?'стоманобетонна конзолна':'гравитачна масивна'} подпорна стена</h2><div class="meta"><div><b>Обект</b>${$('pName').value||'—'}</div><div><b>Възложител</b>${$('pClient').value||'—'}</div><div><b>Изготвил</b>${$('pAuthor').value||'—'}</div><div><b>Дата</b>${$('pDate').value||'—'}</div></div>
+<section><h4>1. Изходни данни</h4><table class="rtab"><tr><th>Параметър</th><th>Стойност</th></tr>${geom}<tr><td>Обща ширина B</td><td>${fmt(R.B,2)} m</td></tr><tr><td>Насип β / φ</td><td>${fmt(R.betaDeg,0)}° / ${fmt(R.phiDeg,0)}°</td></tr><tr><td>γ / c / μ</td><td>${fmt(R.gamma,1)} kN/m³ / ${fmt(R.coh,1)} kPa / ${fmt(R.mu,3)}</td></tr><tr><td>Полезен товар q</td><td>${fmt(R.q,1)} kPa</td></tr></table>${R.betaWarn?'<div class="warn">⚠ β ≥ φ — параметрите са извън обичайния обхват на използваната формула.</div>':''}${R.toeOffset>0?'<div class="warn">⚠ Предната пета е повдигната с Δztoe='+fmt(R.toeOffset,2)+' m. Тя не участва в контактната ширина на основата; проверките за почвен натиск и плъзгане са направени по оставащата контактна основа. Оразмеряването на повдигнатата пета е предварително и трябва да се детайлира като конзолен рафт.</div>':''}${R.seisWarn?'<div class="warn">⚠ '+R.seisWarn+'</div>':''}</section>
+<section><h4>2. Земен натиск</h4><div class="calc-line"><span class="desc">Статичен коефициент по Ранкин</span>Kₐ = <b>${fmt(R.Ka,3)}</b>; Eγ = 0.5·Kₐ·γ·H² = <b>${fmt(R.Psoil,2)} kN/m</b>; Eq = Kₐ·q·H = <b>${fmt(R.Pq,2)} kN/m</b>.</div>${seis}</section>
+<section><h4>3. Устойчивост</h4><div class="calc-line"><span class="desc">Преобръщане</span>Mᵣ=<b>${fmt(R.Mr,2)} kNm/m</b>; Mₒ=<b>${fmt(R.Mo,2)} kNm/m</b>; FS=<b>${fmt(R.FSover,2)}</b> ${R.FSover>=R.FSoverReq?'✓':'✗'} (изисква ${fmt(R.FSoverReq,2)}).</div><div class="calc-line"><span class="desc">Плъзгане</span>ΣH=<b>${fmt(R.SumH,2)} kN/m</b>; R=<b>${fmt(R.slideRes,2)} kN/m</b>; FS=<b>${fmt(R.FSslide,2)}</b> ${R.FSslide>=R.FSslideReq?'✓':'✗'} (изисква ${fmt(R.FSslideReq,2)}).</div><div class="calc-line"><span class="desc">Контактни напрежения</span>e=<b>${fmt(R.e,3)} m</b>, σmax=<b>${fmt(R.qmax,1)} kPa</b>, σmin=<b>${fmt(R.qmin,1)} kPa</b>; qдоп=${fmt(R.qAllow,1)} kPa ${R.bearingOK?'✓':'✗'}.</div></section>
+${rebar}
+<section><h4>${R.reinforcement?'6':'4'}. Количествена сметка</h4><table class="rtab"><tr><th>Материал / дейност</th><th>Количество</th><th>Основа</th></tr><tr><td>Бетон</td><td>${fmt(R.concreteVol,2)} m³</td><td>${fmt(R.concreteArea,3)} m² × ${fmt(R.length,2)} m</td></tr><tr><td>Изкоп — ориентировъчно</td><td>${fmt(R.excavVol,2)} m³</td><td>с 10% технологичен резерв</td></tr>${R.mode==='cantilever'?`<tr><td>Обратен насип над задната пета</td><td>${fmt(R.backfillVol,2)} m³</td><td>Lheel × H₁ × дължина</td></tr><tr><td>Армировъчна стомана — ориентировъчно</td><td>${fmt(R.steelKg,0)} kg</td><td>основни показани пръти + 10%</td></tr>`:''}</table></section>
+<div class="conclusion ${ok?'ok':'bad'}"><b>${ok?'✔ ЗАКЛЮЧЕНИЕ: Приетото сечение удовлетворява зададените проверки в рамките на използвания предварителен модел.':'✘ ЗАКЛЮЧЕНИЕ: Една или повече проверки не са удовлетворени. Необходимо е изменение на геометрията или проектните параметри.'}</b></div>
+<div class="disclaimer">Калкулаторът е предназначен за предварително оразмеряване и количествена оценка. Използваните модели са опростени. Не заменя геотехнически доклад и конструктивен проект. При реално проектиране се изисква проверка по приложимите нормативни документи и конкретната проектна ситуация, включително водно натоварване, дренаж, комбинации на въздействия, частни коефициенти, срязване, армировъчни детайли и сеизмична категория.</div>`}
+function drawSVG(R){
+const W=1100,Hpx=760,ml=150,mr=210,mt=75,mb=150,drawW=W-ml-mr,drawH=Hpx-mt-mb;
+const front=1.25,back=1.45,totalW=front+R.B+back,totalH=R.H+Math.max(R.D,R.toeOffset+R.tFoot,0)+0.65;
+let sc=Math.min(drawW/totalW,drawH/totalH);sc=Math.max(42,Math.min(150,sc));
+const by=Hpx-mb,X=x=>ml+(front+x)*sc,Y=y=>by-y*sc;
+const groundF=Math.max(R.D,0);
+let s=`<defs><pattern id="hc" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#d6d8d4"/><line x1="0" y1="0" x2="0" y2="7" stroke="#9aa09a" stroke-width="1"/></pattern><pattern id="hs" width="10" height="10" patternTransform="rotate(35)" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#cdbd93" fill-opacity=".62"/><line x1="0" y1="0" x2="0" y2="10" stroke="#8a7748"/></pattern><marker id="arr" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0L9,3L0,6Z" fill="#b8401a"/></marker></defs><style>text{font-family:ui-monospace,Consolas,monospace;fill:#182b30}.dim{stroke:#173c50;stroke-width:1.25}.ext{stroke:#173c50;stroke-width:.8;stroke-dasharray:3,2}.rbar{stroke:#9b2d2d;stroke-width:4;fill:none}.rbar2{stroke:#9b2d2d;stroke-width:2;fill:none;stroke-dasharray:3,2}.call{stroke:#9b2d2d;stroke-width:1.1;fill:none}.labelbox{fill:#fff;stroke:#9b2d2d;stroke-width:1}</style>`;
+function dimH(a,b,y,txt,off=0){const yy=Y(y)+off;return `<line class="dim" x1="${X(a)}" y1="${yy}" x2="${X(b)}" y2="${yy}"/><line class="dim" x1="${X(a)}" y1="${yy-6}" x2="${X(a)}" y2="${yy+6}"/><line class="dim" x1="${X(b)}" y1="${yy-6}" x2="${X(b)}" y2="${yy+6}"/><text x="${(X(a)+X(b))/2}" y="${yy-7}" text-anchor="middle" font-size="12" fill="#173c50">${txt}</text>`}
+function dimV(a,b,x,txt,off=0){const xx=X(x)+off;return `<line class="dim" x1="${xx}" y1="${Y(a)}" x2="${xx}" y2="${Y(b)}"/><line class="dim" x1="${xx-6}" y1="${Y(a)}" x2="${xx+6}" y2="${Y(a)}"/><line class="dim" x1="${xx-6}" y1="${Y(b)}" x2="${xx+6}" y2="${Y(b)}"/><text x="${xx+9}" y="${(Y(a)+Y(b))/2}" dominant-baseline="middle" font-size="12" fill="#173c50">${txt}</text>`}
+// Front ground and embedded soil
+s+=`<polygon points="${X(-front)},${Y(0)} ${X(-front)},${Y(groundF)} ${X(R.mode==='cantilever'?R.Ltoe:0)},${Y(groundF)} ${X(R.mode==='cantilever'?R.Ltoe:0)},${Y(0)}" fill="url(#hs)" stroke="#8a7748"/>`;
+s+=`<line x1="${X(-front)}" y1="${Y(groundF)}" x2="${X(R.mode==='cantilever'?R.Ltoe:0)}" y2="${Y(groundF)}" stroke="#5b4a24" stroke-width="2.5"/><text x="${X(-front+.08)}" y="${Y(groundF)-8}" font-size="12">ТЕРЕН ПРЕД СТЕНАТА</text>`;
+if(R.mode==='cantilever'){
+ const xF=R.Ltoe,xB=R.Ltoe+R.tBase,xT=R.Ltoe+R.tTop,zt=R.toeOffset;
+ // backfill, rear base and wall stem
+ s+=`<polygon points="${X(xB)},${Y(R.tFoot)} ${X(R.B)},${Y(R.tFoot)} ${X(R.B)},${Y(R.H)} ${X(xB)},${Y(R.H)}" fill="url(#hs)" stroke="#8a7748"/>`;
+ s+=`<rect x="${X(xF)}" y="${Y(R.tFoot)}" width="${(R.tBase+R.Lheel)*sc}" height="${R.tFoot*sc}" fill="url(#hc)" stroke="#173c50" stroke-width="2.2"/>`;
+ // raised or base-level toe shelf
+ s+=`<rect x="${X(0)}" y="${Y(zt+R.tFoot)}" width="${R.Ltoe*sc}" height="${R.tFoot*sc}" fill="url(#hc)" stroke="#173c50" stroke-width="2.2"/>`;
+ s+=`<polygon points="${X(xF)},${Y(R.tFoot)} ${X(xF)},${Y(R.H)} ${X(xT)},${Y(R.H)} ${X(xB)},${Y(R.tFoot)}" fill="url(#hc)" stroke="#173c50" stroke-width="2.2"/>`;
+ if(zt>1e-9){s+=`<text x="${X(R.Ltoe/2)}" y="${Y(zt+R.tFoot)+18}" text-anchor="middle" font-size="11" fill="#173c50">ПОВДИГНАТА ПРЕДНА ПЕТА</text><line class="ext" x1="${X(R.Ltoe)}" y1="${Y(0)}" x2="${X(R.Ltoe)}" y2="${Y(zt)}"/>`}
+ s+=`<line x1="${X(xT)}" y1="${Y(R.H)}" x2="${X(R.B+back)}" y2="${Y(R.H)}" stroke="#5b4a24" stroke-width="2.5"/><text x="${X(R.B+.2)}" y="${Y(R.H)-10}" font-size="12">НАСИП / ТЕРЕН</text>`;
+ if(R.reinforcement){const rb=R.reinforcement,stemX=xB-.055,stemTop=xT-.045;
+   s+=`<path class="rbar" d="M${X(stemX)},${Y(R.tFoot+.05)} L${X(stemTop)},${Y(R.H-.05)}"/>`;
+   for(let i=0;i<5;i++){const y=R.tFoot+.18+i*(R.H-R.tFoot-.36)/4;s+=`<line class="rbar2" x1="${X(xF+.06)}" y1="${Y(y)}" x2="${X(xB-.06)}" y2="${Y(y)}"/>`}
+   s+=`<path class="rbar" d="M${X(xB+.035)},${Y(R.tFoot-.07)} L${X(R.B-.06)},${Y(R.tFoot-.07)}"/>`;
+   const toeY=zt+.07;s+=`<path class="rbar" d="M${X(.06)},${Y(toeY)} L${X(xF-.03)},${Y(toeY)}"/>`;
+   s+=`<path class="rbar" d="M${X(stemX)},${Y(R.tFoot+.05)} L${X(stemX)},${Y(.13)} L${X(xB+.20)},${Y(.13)}"/>`;
+   const cx=W-175;
+   s+=`<rect class="labelbox" x="${cx}" y="110" width="155" height="34" rx="3"/><text x="${cx+8}" y="126" font-size="11" fill="#9b2d2d">A1 Стъбло (верт.)</text><text x="${cx+8}" y="140" font-size="11" fill="#9b2d2d">Ø${rb.dia}/${rb.sStem} cm — откъм насипа</text><path class="call" d="M${cx},127 L${X(stemX)+6},${Y((R.H+R.tFoot)/2)}"/>`;
+   s+=`<rect class="labelbox" x="${cx}" y="160" width="155" height="34" rx="3"/><text x="${cx+8}" y="176" font-size="11" fill="#9b2d2d">A2 Задна пета — горе</text><text x="${cx+8}" y="190" font-size="11" fill="#9b2d2d">Ø${rb.dia}/${rb.sHeel} cm</text><path class="call" d="M${cx},177 L${X((xB+R.B)/2)},${Y(R.tFoot-.07)}"/>`;
+   s+=`<rect class="labelbox" x="${cx}" y="210" width="155" height="34" rx="3"/><text x="${cx+8}" y="226" font-size="11" fill="#9b2d2d">A3 Предна пета — долу</text><text x="${cx+8}" y="240" font-size="11" fill="#9b2d2d">Ø${rb.dia}/${rb.sToe} cm</text><path class="call" d="M${cx},227 L${X(xF/2)},${Y(toeY)}"/>`;
+   s+=`<text x="${cx}" y="274" font-size="10" fill="#4a5c60">Червено: основна армировка</text><text x="${cx}" y="289" font-size="10" fill="#4a5c60">Пунктир: разпределителна</text>`;
+ }
+ s+=dimH(0,R.Ltoe,0,`Ltoe=${fmt(R.Ltoe,2)} m`,54)+dimH(R.Ltoe,xB,0,`tдол=${fmt(R.tBase*100,0)} cm`,54)+dimH(xB,R.B,0,`Lheel=${fmt(R.Lheel,2)} m`,54)+dimH(0,R.B,0,`B=${fmt(R.B,2)} m`,82);
+ s+=dimV(0,R.tFoot,xF,`tф=${fmt(R.tFoot*100,0)} cm`,-28)+dimV(R.tFoot,R.H,xF,`H₁=${fmt(R.H1,2)} m`,-48)+dimV(0,groundF,-front+.08,`Df=${fmt(R.D,2)} m`,-22);
+ if(zt>1e-9)s+=dimV(0,zt,-.05,`Δztoe=${fmt(zt,2)} m`,-58);
+ s+=`<line class="ext" x1="${X(-front+.10)}" y1="${Y(0)}" x2="${X(.05)}" y2="${Y(0)}"/><text x="${X(-front+.1)}" y="${Y(0)+18}" font-size="11">КОТА ОСНОВА</text>`;
+} else {
+ const left=(R.B-R.gBtop)/2,right=left+R.gBtop;
+ s+=`<polygon points="${X(0)},${Y(0)} ${X(R.B)},${Y(0)} ${X(right)},${Y(R.H)} ${X(left)},${Y(R.H)}" fill="url(#hc)" stroke="#173c50" stroke-width="2.2"/><polygon points="${X(right)},${Y(0)} ${X(R.B)},${Y(0)} ${X(R.B)},${Y(R.H)} ${X(right)},${Y(R.H)}" fill="url(#hs)" stroke="#8a7748" stroke-opacity=".5"/><line x1="${X(right)}" y1="${Y(R.H)}" x2="${X(R.B+back)}" y2="${Y(R.H)}" stroke="#5b4a24" stroke-width="2.5"/>`;
+ s+=dimH(0,R.B,0,`B=${fmt(R.B,2)} m`,54)+dimV(0,R.H,-.05,`H=${fmt(R.H,2)} m`,-38)+dimV(0,groundF,-front+.08,`Df=${fmt(R.D,2)} m`,-22)+`<text x="${X(R.B/2)}" y="${Y(R.H)+20}" text-anchor="middle" font-size="12">Bгоре=${fmt(R.gBtop,2)} m</text>`;
+}
+const xPress=R.mode==='cantilever'?R.Ltoe+R.tBase:(R.B+R.gBtop)/2,pressureBottom=R.mode==='cantilever'?R.tFoot:0;
+for(let i=0;i<7;i++){const yy=pressureBottom+i*(R.H-pressureBottom)/6,len=8+45*i/6;s+=`<line x1="${X(xPress)+len}" y1="${Y(yy)}" x2="${X(xPress)+2}" y2="${Y(yy)}" stroke="#b8401a" stroke-width="1.6" marker-end="url(#arr)"/>`}
+s+=`<text x="${X(xPress)+58}" y="${Y((R.H+pressureBottom)/2)-10}" font-size="12" fill="#b8401a">Ea${R.seis?'+ ΔE':''}</text><text x="${X(R.B+.1)}" y="${Y(R.H/2)+20}" font-size="11">γ=${fmt(R.gamma,0)} kN/m³</text><text x="${X(R.B+.1)}" y="${Y(R.H/2)+36}" font-size="11">φ=${fmt(R.phiDeg,0)}°</text>`;
+$('svgWall').innerHTML=s}
+function saveProject(){const data={app:'Подпорна стена — разширен калкулатор',version:3,savedAt:new Date().toISOString(),fields:{}};document.querySelectorAll('input,select,textarea').forEach(el=>{if(!el.id||el.type==='file')return;data.fields[el.id]=el.type==='checkbox'?el.checked:el.value});const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');const safe=(data.fields.pName||'podporna_stena').replace(/[^a-z0-9а-я_-]+/gi,'_');a.href=URL.createObjectURL(blob);a.download=safe+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),200)}
+function loadProject(ev){const f=ev.target.files&&ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.fields)throw new Error('Липсват данни за проекта');Object.entries(data.fields).forEach(([id,v])=>{const el=$(id);if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v});setMode();calc();alert('Проектът е зареден успешно.')}catch(e){alert('Файлът не е валиден проектен JSON: '+e.message)}finally{ev.target.value=''}};r.readAsText(f,'UTF-8')}
+function exportDXF(){const svg=$('svgWall'),Rmode=$('wallMode').value;const pts=[];if(Rmode==='cantilever'){const H1=num('H1'),tf=num('tFoot')/100,tt=num('tTop')/100,tb=num('tBase')/100,lt=num('Ltoe'),lh=num('Lheel'),zt=Math.max(0,num('toeOffset')),B=lt+tb+lh;pts.push([[lt,0],[B,0],[B,tf],[lt+tb,tf],[lt+tt,H1+tf],[lt,H1+tf],[lt,tf],[lt,0]]);pts.push([[0,zt],[lt,zt],[lt,zt+tf],[0,zt+tf],[0,zt]])}else{const H=num('gH'),B=num('gBbase'),bt=num('gBtop'),l=(B-bt)/2;pts.push([[0,0],[B,0],[l+bt,H],[l,H],[0,0]])}let d='0\nSECTION\n2\nENTITIES\n';for(const pl of pts){d+='0\nLWPOLYLINE\n8\nWALL\n90\n'+pl.length+'\n70\n1\n';for(const [x,y] of pl)d+='10\n'+x.toFixed(4)+'\n20\n'+y.toFixed(4)+'\n'}if(Rmode==='cantilever'){const lt=num('Ltoe'),tb=num('tBase')/100,tf=num('tFoot')/100,H=num('H1');d+='0\nLINE\n8\nREBAR\n10\n'+(lt+tb-.04).toFixed(4)+'\n20\n'+(tf+.03).toFixed(4)+'\n11\n'+(lt+num('tTop')/100-.04).toFixed(4)+'\n21\n'+(tf+H-.05).toFixed(4)+'\n'}d+='0\nENDSEC\n0\nEOF';const blob=new Blob([d],{type:'application/dxf'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='podporna_stena.dxf';a.click();URL.revokeObjectURL(a.href)}
+function resetDefaults(){const v={H1:3,tTop:30,tBase:40,tFoot:50,Ltoe:.8,Lheel:1.6,Dfront:.8,gH:3.5,gBbase:1.8,gBtop:.5,beta:0,wallLength:10,gammaSoil:18,phi:30,cohesion:0,gammaConcrete:24,mu:.45,qAllow:220,qSurcharge:10,FSoverturnReq:1.5,FSslideReq:1.5,kh:.1,kv:0,delta:0,fyk:500,fck:25,cover:50,barDia:16,toeOffset:0};Object.entries(v).forEach(([k,x])=>$(k).value=x);$('muAuto').checked=true;$('includePassive').checked=false;$('seismic').checked=false;setMode()}
+$('pDate').value=new Date().toISOString().slice(0,10);setMode();
+</script></body></html>
